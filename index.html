@@ -241,7 +241,7 @@
             setError(data.error || "Login failed");
           }
         } catch (err) {
-          setError("Network error");
+          setError(err);
         }
       };
 
@@ -428,3 +428,4 @@
   </script>
 </body>
 </html>
+
