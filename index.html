@@ -15,9 +15,12 @@
       margin: 0;
       font-family: sans-serif;
       display: flex;
-      justify-content: center;
+      justify-content: center; 
       align-items: center;
       background: #fafafa;
+      margin: 0;
+      padding: 0%;
+      overflow-x: hidden;
     }
     @keyframes fadeIn {
     from { opacity: 0; }
@@ -34,6 +37,7 @@
     .sidebar, .leaderboard {
       width: 160px;
       flex-shrink: 0;
+      font-size: 3vmin;
     }
 
     .team-header {
@@ -50,18 +54,22 @@
 
     .board {
       display: grid;
+      grid-template-columns: repeat(5, 1fr); /* Adjust based on your bingo size */
+      aspect-ratio: 1 / 1;
       gap: 10px;
+      max-width: 90vw;
+      width: 90vmin; /* Ensures square shape */
+      background: white;
       border: 2px solid #555;
       border-radius: 12px;
       padding: 10px;
-      background: white;
-      user-select: none;
       justify-content: center;
+      user-select: none;
     }
 
+
     .cell {
-      width: 100px;
-      height: 100px;
+      aspect-ratio: 1 / 1;
       background: #f0f0f0;
       border: 2px solid #555;
       border-radius: 8px;
@@ -73,7 +81,28 @@
       transition: background-color 0.3s ease, color 0.3s ease;
       position: relative;
       text-align: center;
-      padding: 6px;
+      padding: 1%;
+    }
+    .cell-title {
+      font-size: clamp(10px, 3vmin, 24px); /* scales but won’t get too big or too small */
+      overflow-wrap: break-word;            /* wrap long words */
+      white-space: normal;
+      text-align: center;
+    }
+
+
+    .cell .claimed-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      border-radius: 8px;
+    }
+
+    .cell .claimed-layer {
+      position: absolute;
+      border-radius: 4px;
+      box-sizing: border-box;
     }
 
     .cell:hover {
@@ -163,7 +192,7 @@
       .sidebar, .leaderboard {
         width: 95%;
         text-align: center;
-        font-size: 2rem;
+        font-size: 3vmin;
       }
 
       .team-member {
@@ -214,7 +243,7 @@
               setGameState(data);
               for (const [teamNum, team] of Object.entries(data.teams || {})) {
                 if (team.members.includes(user)) {
-                  setTeamNumber(Number(teamNum));
+                  setTeamNumber((teamNum));
                   break;
                 }
               }
@@ -249,7 +278,7 @@
         if (!gameState) return;
         const index = row * gameState.grid_size + col;
         const cell = gameState.board[index];
-        setModalContent(cell.description || "No description available.");
+        setModalContent(cell);
         setModalVisible(true);
       };
 
@@ -288,19 +317,61 @@
         const square = gameState.board[i];
         const row = Math.floor(i / gameState.grid_size);
         const col = i % gameState.grid_size;
-        const claimed = square.claimed_by;
-        const lastTeam = claimed.length ? claimed[claimed.length - 1] : null;
-        const teamColor = lastTeam ? (gameState.teams[lastTeam]?.color || "transparent") : "transparent";
-        const bg = teamColor.startsWith("#") ? hexToRGBA(teamColor, 0.2) : teamColor;
+        const claimed = square.claimed_by || [];
+        const points = square.value || []; // renamed from 'points' to 'value', based on your object
+
+        const layers = [];
+        if (claimed.length > 0) {
+          const shrinkPerLayer = 15; // percent shrink per layer
+          const baseSize = 100;
+
+          claimed.forEach((teamId, index) => {
+            const team = gameState.teams[teamId];
+            const color = team?.color || "gray";
+            const size = baseSize - index * shrinkPerLayer;
+            const offset = (100 - size) / 2;
+
+            layers.push(e("div", {
+              className: "claimed-layer",
+              key: `layer-${index}`,
+              style: {
+                backgroundColor: color,
+                width: `${size}%`,
+                height: `${size}%`,
+                top: `${offset}%`,
+                left: `${offset}%`
+              }
+            }));
+          });
+        }
+
         board.push(
           e("div", {
             key: i,
             className: "cell",
-            style: { backgroundColor: bg },
-            onClick: () => handleClick(row, col)
+            onClick: () => handleClick(row, col),
+            style: { position: "relative", overflow: "hidden" }
           }, [
-            square.title || `Square ${i + 1}`,
-            square.media?.length ? e("div", { className: "media-indicator", key: "media" }) : null
+            e("div", { className: "claimed-overlay", style: { zIndex: 0 } }, layers),
+            e("div", {
+              className: "cell-title",
+              style: {
+                position: "relative",
+                zIndex: 1,
+                textAlign: "center",
+                padding: "1vmin",
+                fontWeight: "bold",
+                color: "black", // or white, depending on background
+                fontSize: "3vmin",          // or try 3cqw if your browser supports it
+                maxWidth: "100%",
+                maxHeight: "100%",
+                lineHeight: "1.1",
+                wordBreak: "break-word",    // wraps long words
+                overflow: "hidden",         // prevents overflow
+                whiteSpace: "normal",  
+              }
+            }, square.title || `Square ${i + 1}`),
+            square.media?.length ? e("div", { className: "media-indicator", key: "media", style: { zIndex: 2 } }) : null
           ])
         );
       }
@@ -310,7 +381,6 @@
         .sort((a, b) => b.score - a.score);
 
       return e("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" } }, [
-
         // Welcome
         e("div", {
           style: {
@@ -324,90 +394,101 @@
           e("span", { style: { color: teamInfo.color } }, user)
         ]),
 
-        // Layout
+        // Layout container
         e("div", { className: "container" }, [
+
+          // Sidebar
           e("div", { className: "sidebar" }, [
             e("div", { className: "team-header", style: { color: teamInfo.color } }, `Team ${teamNumber}`),
             ...teamInfo.members.map(name =>
               e("div", { className: "team-member", style: { color: teamInfo.color }, key: name }, name)
             )
           ]),
+
+          // Board with modal inside
           e("div", {
             className: "board",
-            style: { gridTemplateColumns: `repeat(${gameState.grid_size}, 1fr)` }
-          }, board),
+            style: { 
+              gridTemplateColumns: `repeat(${gameState.grid_size}, 1fr)`,
+              position: "relative" // Make board the positioning context for modal
+            }
+          }, [
+            ...board,
+
+            // Modal inside board
+            modalVisible && modalContent && e("div", {
+              className: "modal-overlay",
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                animation: "fadeIn 0.3s ease",
+                zIndex: 10,
+                pointerEvents: "auto"
+              },
+              onClick: () => setModalVisible(false)
+            }, e("div", {
+              className: "modal-content",
+              style: {
+                backgroundColor: "white",
+                padding: "30px",
+                borderRadius: "12px",
+                width: "80%",
+                height: "80%",
+                overflowY: "auto",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                textAlign: "center"
+              },
+              onClick: e => e.stopPropagation()
+            }, [
+              e("h2", null, modalContent.title || "Untitled"),
+              e("p", null, modalContent.description || "No description available."),
+              modalContent.points?.length > 0 && e("p", null, `Points: ${modalContent.points[0]}`),
+              e("p", { style: { marginTop: "10px", fontWeight: "bold" } }, "Teams Completed:"),
+              e("p", null, (modalContent.completed_teams?.length > 0 ? modalContent.completed_teams.join(", ") : "None")),
+
+              e("button", { style: { marginTop: "12px" } }, "Claim Spot"),
+
+              // Show these only if the logged in team completed this spot
+              (modalContent.completed_teams?.includes(teamNumber)) && e(React.Fragment, null, [
+                e("button", { style: { marginTop: "12px" } }, "Add Media"),
+                e("input", {
+                  type: "text",
+                  placeholder: "Quantity (if applicable)",
+                  style: { display: "block", marginTop: "10px", width: "100%" }
+                }),
+                e("textarea", {
+                  placeholder: "Comment",
+                  rows: 3,
+                  style: { display: "block", marginTop: "10px", width: "100%" }
+                }),
+                e("button", { style: { marginTop: "12px" } }, "Save")
+              ])
+            ]))
+          ]),
+
+          // Leaderboard
           e("div", { className: "leaderboard" }, [
             e("div", { className: "team-header" }, "Leaderboard"),
             ...leaderboard.map(entry =>
               e("div", { style: { color: entry.color }, key: entry.team }, `Team ${entry.team}: ${entry.score}`)
             )
           ])
-        ]),
 
-        // Modal
-        modalVisible && modalContent && e("div", {
-    className: "modal-overlay",
-    style: {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        animation: "fadeIn 0.3s ease"
-    },
-    onClick: () => setModalVisible(false)
-    }, e("div", {
-        className: "modal-content",
-        style: {
-            backgroundColor: "white",
-            padding: "30px",
-            borderRadius: "12px",
-            width: "80%",
-            height: "80%",
-            overflowY: "auto",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            textAlign: "center"
-            },
-        onClick: e => e.stopPropagation()
-    }, [
-        e("h2", null, modalContent.title || "Untitled"),
-        e("p", null, modalContent.description || "No description available."),
-        modalContent.points?.length > 0 && e("p", null, `Points: ${modalContent.points[0]}`),
-        e("p", { style: { marginTop: "10px", fontWeight: "bold" } }, "Teams Completed:"),
-        e("p", null, (modalContent.completed_teams?.length > 0 ? modalContent.completed_teams.join(", ") : "None")),
-
-        e("button", {
-            style: { marginTop: "12px" }
-        }, "Claim Spot"),
-
-        // Only show these if the logged in team has completed it
-        (modalContent.completed_teams?.includes(teamNumber)) && e(React.Fragment, null, [
-            e("button", { style: { marginTop: "12px" } }, "Add Media"),
-            e("input", {
-                type: "text",
-                placeholder: "Quantity (if applicable)",
-                style: { display: "block", marginTop: "10px", width: "100%" }
-            }),
-            e("textarea", {
-                placeholder: "Comment",
-                rows: 3,
-                style: { display: "block", marginTop: "10px", width: "100%" }
-            }),
-            e("button", {
-                style: { marginTop: "12px" }
-            }, "Save")
         ])
-    ]))
 
       ]);
+
     }
 
     function hexToRGBA(hex, alpha = 0.2) {
