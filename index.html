@@ -70,7 +70,7 @@
 
     .cell {
       aspect-ratio: 1 / 1;
-      background: #f0f0f0;
+      background: #f0f0f0; 
       border: 2px solid #555;
       border-radius: 8px;
       display: flex;
@@ -232,6 +232,8 @@
       const [teamNumber, setTeamNumber] = React.useState(null);
       const [modalVisible, setModalVisible] = React.useState(false);
       const [modalContent, setModalContent] = React.useState(null);
+      const [quantity, setQuantity] = React.useState("");
+      const [quantityError, setQuantityError] = React.useState(false);
 
       React.useEffect(() => {
         if (user) {
@@ -390,6 +392,14 @@
       }
       const handleClaimSpot = async () => {
         try {
+          if (modalContent.is_high_score_challenge === 1) {
+            const parsedQuantity = parseInt(quantity);
+            if (!parsedQuantity || parsedQuantity <= 0) {
+              setQuantityError(true);
+              return;
+            }
+            setQuantityError(false); // clear error if valid
+          }
           const response = await fetch('https://tunnel.bingogame.gay/claim_spot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -399,6 +409,8 @@
               spot: modalContent.square,
               team: teamNumber,
               media: null,
+              quantity: modalContent.is_high_score_challenge === 1 ? parseInt(quantity) : 0,
+              comment: ""
             }),
           });
 
@@ -494,19 +506,23 @@
               e("p", null, modalContent.description || "No description available."),
               modalContent.points?.length > 0 && e("p", null, `Points: ${modalContent.points[0]}`),
               e("p", { style: { marginTop: "10px", fontWeight: "bold" } }, "Teams Completed:"),
-              e("div", { className: "leaderboard" }, 
+              e("div", { className: "modalleaderboard" }, 
                 modalContent.claimed_by?.length > 0
                   ? modalContent.claimed_by.map((teamName, index) => {
-                      const timestamp = modalContent.claim_timestamp?.[index] || "unknown time";
+                      const timestamp = modalContent.timestamps?.[index] || "unknown time";
                       const teamEntry = leaderboard.find(entry => entry.team === teamName);
                       const color = teamEntry?.color || "black";
                       const points = modalContent.value?.[index] ?? 0;
+                      const scoreSuffix = modalContent.is_high_score_challenge == 1
+                        ? `, score: ${modalContent.quantities?.[index] ?? "?"}`
+                        : "";
+
                       return e(
                         "p",
                         { key: `${teamName}-${index}`, style: { margin: "4px 0", fontSize: "14px" } },
                         `#${index + 1} `,
                         e("span", { style: { color, fontWeight: "bold" } }, teamName),
-                        ` ${timestamp} ${points} pts`
+                        ` ${timestamp} ${points} pts${scoreSuffix}`
                       );
                     })
                   : e("p", null, "None")
@@ -516,22 +532,33 @@
               style: { marginTop: "12px" },
               onClick: handleClaimSpot
             }, "Claim Spot"),
-
+              (modalContent.is_high_score_challenge === 1) && e(React.Fragment, null, [
+                e("input", {
+                  type: "number",
+                  placeholder: "Quantity",
+                  value: quantity,
+                  onChange: (e) => setQuantity(e.target.value),
+                  style: {
+                    display: "block",
+                    marginTop: "10px",
+                    width: "100%",
+                    borderColor: quantityError ? "red" : undefined
+                  }
+                }),
+                quantityError && e("div", {
+                  style: { color: "red", marginTop: "4px", fontSize: "0.9em" }
+                }, "Must enter quantity")
+              ]),
               // Show these only if the logged in team completed this spot
               (modalContent.claimed_by?.includes(teamNumber)) && e(React.Fragment, null, [
                 e("button", { style: { marginTop: "12px" } }, "Add Media"),
-                e("input", {
-                  type: "text",
-                  placeholder: "Quantity (if applicable)",
-                  style: { display: "block", marginTop: "10px", width: "100%" }
-                }),
                 e("textarea", {
-                  placeholder: "Comment",
+                  placeholder: "Comment (Optional)",
                   rows: 1,
                   style: { display: "block", marginTop: "10px", width: "100%" }
                 }),
                 e("button", { style: { marginTop: "12px" } }, "Save")
-              ])
+              ]),
             ]))
           ]),
 
