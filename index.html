@@ -273,7 +273,7 @@
           return `${h}:${m}:${s}`;
         }
 
-        return e("div", { style: { fontSize: "1.5rem", marginTop: "10px" } }, format(remaining));
+        return e("div", { style: { fontSize: "2.5rem", marginTop: "10px" , marginBottom: "10px"} }, format(remaining));
       }
 
       React.useEffect(() => {
@@ -336,6 +336,20 @@
         const cell = gameState.board[index];
         setModalContent(cell);
         setModalVisible(true);
+      };
+
+      const formatDateTime = (isoString) => {
+        if (!isoString) return "N/A";
+        const date = new Date(isoString);
+        return date.toLocaleString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true
+        });
       };
 
       if (!user) {
@@ -611,10 +625,14 @@
             )
           ]),
           e("br"),
+          e("div", { style: { textAlign: "center", marginTop: "10px" } }, 
+          e("div", null, `Start: ${formatDateTime(gameState?.start_time)}`),
           e(Countdown, { 
             start_time: gameState?.start_time, 
             end_time: gameState?.end_time 
-          })
+          }),
+          e("div", null, `End: ${formatDateTime(gameState?.end_time)}`)
+        )
         ])
 
       ]);
