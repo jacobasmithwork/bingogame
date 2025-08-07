@@ -235,6 +235,47 @@
       const [quantity, setQuantity] = React.useState("");
       const [quantityError, setQuantityError] = React.useState(false);
 
+      function Countdown({ start_time, end_time }) {
+        const [remaining, setRemaining] = React.useState(0);
+
+        React.useEffect(() => {
+          if (!start_time || !end_time) return;
+
+          const start = new Date(start_time);
+          const end = new Date(end_time);
+
+          function updateCountdown() {
+            const now = new Date();
+
+            if (now < start) {
+              // Before game starts — show total duration
+              setRemaining(end - start);
+            } else if (now >= start && now <= end) {
+              // Game in progress — show remaining time until end
+              setRemaining(end - now);
+            } else {
+              // After end
+              setRemaining(0);
+            }
+          }
+
+          updateCountdown();
+          const interval = setInterval(updateCountdown, 1000);
+          return () => clearInterval(interval);
+        }, [start_time, end_time]);
+
+        function format(ms) {
+          if (ms <= 0) return "00:00:00";
+          const totalSeconds = Math.floor(ms / 1000);
+          const h = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+          const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+          const s = String(totalSeconds % 60).padStart(2, "0");
+          return `${h}:${m}:${s}`;
+        }
+
+        return e("div", { style: { fontSize: "1.5rem", marginTop: "10px" } }, format(remaining));
+      }
+
       React.useEffect(() => {
         if (user) {
           fetch("https://tunnel.bingogame.gay/game_state", {
@@ -568,8 +609,12 @@
             ...leaderboard.map(entry =>
               e("div", { style: { color: entry.color }, key: entry.team }, `Team ${entry.team}: ${entry.score}`)
             )
-          ])
-
+          ]),
+          e("br"),
+          e(Countdown, { 
+            start_time: gameState?.start_time, 
+            end_time: gameState?.end_time 
+          })
         ])
 
       ]);
