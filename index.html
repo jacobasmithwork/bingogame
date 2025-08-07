@@ -528,39 +528,39 @@
                   : e("p", null, "None")
               ),
 
-             e("button", {
+             !(modalContent.is_lockout_challenge === 1 && modalContent.claimed_by?.length > 0) && e("button", {
               style: { marginTop: "12px" },
               onClick: handleClaimSpot
             }, "Claim Spot"),
-              (modalContent.is_high_score_challenge === 1) && e(React.Fragment, null, [
-                e("input", {
-                  type: "number",
-                  placeholder: "Quantity",
-                  value: quantity,
-                  onChange: (e) => setQuantity(e.target.value),
-                  style: {
-                    display: "block",
-                    marginTop: "10px",
-                    width: "100%",
-                    borderColor: quantityError ? "red" : undefined
-                  }
-                }),
-                quantityError && e("div", {
-                  style: { color: "red", marginTop: "4px", fontSize: "0.9em" }
-                }, "Must enter quantity")
-              ]),
-              // Show these only if the logged in team completed this spot
-              (modalContent.claimed_by?.includes(teamNumber)) && e(React.Fragment, null, [
-                e("button", { style: { marginTop: "12px" } }, "Add Media"),
-                e("textarea", {
-                  placeholder: "Comment (Optional)",
-                  rows: 1,
-                  style: { display: "block", marginTop: "10px", width: "100%" }
-                }),
-                e("button", { style: { marginTop: "12px" } }, "Save")
-              ]),
-            ]))
-          ]),
+            (modalContent.is_high_score_challenge === 1) && e(React.Fragment, null, [
+              e("input", {
+                type: "number",
+                placeholder: "Quantity",
+                value: quantity,
+                onChange: (e) => setQuantity(e.target.value),
+                style: {
+                  display: "block",
+                  marginTop: "10px",
+                  width: "100%",
+                  borderColor: quantityError ? "red" : undefined
+                }
+              }),
+              quantityError && e("div", {
+                style: { color: "red", marginTop: "4px", fontSize: "0.9em" }
+              }, "Must enter quantity")
+            ]),
+            // Show these only if the logged in team completed this spot
+            (modalContent.claimed_by?.includes(teamNumber)) && e(React.Fragment, null, [
+              e("button", { style: { marginTop: "12px" } }, "Add Media"),
+              e("textarea", {
+                placeholder: "Comment (Optional)",
+                rows: 1,
+                style: { display: "block", marginTop: "10px", width: "100%" }
+              }),
+              e("button", { style: { marginTop: "12px" } }, "Save")
+            ]),
+          ]))
+        ]),
 
           // Leaderboard
           e("div", { className: "leaderboard" }, [
