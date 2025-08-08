@@ -551,12 +551,27 @@
 
           // Sidebar
           e("div", { className: "sidebar" }, [
-            e("div", { className: "team-header", style: { color: teamInfo.color } }, `Team ${teamNumber}`),
-            ...teamInfo.members.map(name =>
-              e("div", { className: "team-member", style: { color: teamInfo.color }, key: name }, name)
+            e(
+              "div",
+              {
+                className: "team-header",
+                style: { color: gameState.teams?.[teamNumber]?.color || "black" }
+              },
+              `Team ${teamNumber}`
+            ),
+            ...(gameState.teams?.[teamNumber]?.members || []).map(name =>
+              e(
+                "div",
+                {
+                  className: "team-member",
+                  style: { color: gameState.teams?.[teamNumber]?.color || "black" },
+                  key: name
+                },
+                name
+              )
             )
           ]),
-
+          
           // Board with modal inside
           e("div", {
             className: "board",
