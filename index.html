@@ -243,7 +243,7 @@
       const [modalContent, setModalContent] = React.useState(null);
       const [quantity, setQuantity] = React.useState("");
       const [quantityError, setQuantityError] = React.useState(false);
-
+      
       function Countdown({ start_time, end_time }) {
         const [remaining, setRemaining] = React.useState(0);
 
@@ -477,7 +477,7 @@
               comment: ""
             }),
           });
-
+          
           const data = await response.json();
           if (response.ok && data.success) {
             console.log('Claim successful!');
@@ -607,8 +607,9 @@
                     })
                   : e("p", null, "None")
               ),
-
-             !(modalContent.is_lockout_challenge === 1 && modalContent.claimed_by?.length > 0) && e("button", {
+             !(modalContent.is_lockout_challenge === 1 && modalContent.claimed_by?.length > 0) &&
+            (new Date() >= new Date(gameState.start_time) && new Date() <= new Date(gameState.end_time)) &&
+            e("button", {
               style: { marginTop: "12px" },
               onClick: handleClaimSpot
             }, "Claim Spot"),
