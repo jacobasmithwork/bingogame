@@ -84,9 +84,18 @@
     }
     .cell-title {
       font-size: clamp(10px, 3vmin, 24px); /* scales but won’t get too big or too small */
-      overflow-wrap: break-word;            /* wrap long words */
-      white-space: normal;
+      /* overflow-wrap: break-word;            wrap long words */
+      /* white-space: normal; */
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: black; /* main text color */
+      text-shadow:
+        -0.75px -0.75px 0 white,
+        0.75px -0.75px 0 white,
+        -0.75px  0.75px 0 white,
+        0.75px  0.75px 0 white;
     }
 
 
@@ -436,7 +445,7 @@
                 maxHeight: "100%",
                 lineHeight: "1.1",
                 wordBreak: "break-word",    // wraps long words
-                overflow: "hidden",         // prevents overflow
+                // overflow: "elipsis",         // prevents overflow
                 whiteSpace: "normal",  
               }
             }, square.title || `Square ${i + 1}`),
