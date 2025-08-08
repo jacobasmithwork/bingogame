@@ -243,7 +243,43 @@
       const [modalContent, setModalContent] = React.useState(null);
       const [quantity, setQuantity] = React.useState("");
       const [quantityError, setQuantityError] = React.useState(false);
+      const [comment, setComment] = React.useState("");
+      const [media, setMedia] = React.useState([]); 
+      const [uploading, setUploading] = React.useState(false);
       
+      function handleFileChange(e) {
+        setMedia(Array.from(e.target.files || [])); // converts FileList -> array
+      }
+
+      function handleSave() {
+        const formData = new FormData();
+        usersName = getCookie("username")
+        formData.append("team", teamNumber);
+        formData.append("spot", modalContent.square);
+        formData.append("game_id", gameState?.game_id);
+        formData.append("user", user);
+        formData.append("quantity", quantity);
+        formData.append("comment", comment);
+        media.forEach((file, idx) => {
+          formData.append("file", file); // could also do `file${idx}` if you want multiple
+        });
+        setUploading(true);
+
+        fetch("https://tunnel.bingogame.gay/upload", {
+          method: "POST",
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Upload success:", data);
+          setUploading(false);
+        })
+        .catch(err => {
+          console.error("Upload error:", err);
+          setUploading(false);
+        });
+      }
+
       function Countdown({ start_time, end_time }) {
         const [remaining, setRemaining] = React.useState(0);
 
@@ -397,7 +433,7 @@
         const row = Math.floor(i / gameState.grid_size);
         const col = i % gameState.grid_size;
         const claimed = square.claimed_by || [];
-        const points = square.value || []; // renamed from 'points' to 'value', based on your object
+        const points = square.value || [];
 
         const layers = [];
         if (claimed.length > 0) {
@@ -474,7 +510,8 @@
               team: teamNumber,
               media: null,
               quantity: modalContent.is_high_score_challenge === 1 ? parseInt(quantity) : 0,
-              comment: ""
+              comment: "",
+              user: user
             }),
           });
           
@@ -632,13 +669,40 @@
             ]),
             // Show these only if the logged in team completed this spot
             (modalContent.claimed_by?.includes(teamNumber)) && e(React.Fragment, null, [
-              e("button", { style: { marginTop: "12px" } }, "Add Media"),
+              e("input", {
+                type: "file",
+                style: { display: "none" },
+                id: "mediaInput",
+                multiple: true,
+                onChange: handleFileChange
+              }),
+              e("button", {
+                style: { marginTop: "12px" },
+                onClick: () => document.getElementById("mediaInput").click()
+              }, "Add Media"),
+
+              // Preview area for selected files
+              media.length > 0 && e("ul", {
+                style: { marginTop: "8px", paddingLeft: "16px", fontSize: "0.9rem" }
+              },
+                media.map((file, idx) =>
+                  e("li", { key: idx }, file.name)
+                )
+              ),
+
               e("textarea", {
                 placeholder: "Comment (Optional)",
                 rows: 1,
+                value: comment,
+                onChange: e => setComment(e.target.value),
                 style: { display: "block", marginTop: "10px", width: "100%" }
               }),
-              e("button", { style: { marginTop: "12px" } }, "Save")
+
+              e("button", {
+                style: { marginTop: "12px" },
+                onClick: handleSave,
+                disabled: uploading
+              }, uploading ? "Uploading..." : "Save")
             ]),
           ]))
         ]),
